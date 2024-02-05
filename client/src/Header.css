@@ -1,0 +1,23 @@
+.header-container {
+  background: linear-gradient(to bottom, darkgrey, black);
+  padding: 0.05px; /* Adjusted padding to be smaller */
+  border-bottom: 2px solid lightgrey;
+}
+
+.header-text {
+  text-align: left;
+}
+
+.text {
+  color: rgb(252,139,0);
+  margin-left: 15px;
+  text-align: left;
+}
+
+.orange-text {
+  color: #cc7000;
+}
+
+.grey-text {
+  color: #493333;
+}
