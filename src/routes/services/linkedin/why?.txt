@@ -1,0 +1,1 @@
+Apparently there's a problem with linkedin auth challenge. so i cant(?). but i use other script for scrapping <@>

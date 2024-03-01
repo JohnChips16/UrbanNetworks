@@ -15,8 +15,8 @@ const addOutlookValidation = {
     schoolOrUniversity: Joi.string().required(),
     degree: Joi.string().required(),
     specialization: Joi.string(),
-    startYear: Joi.number().integer().min(1900).max(new Date().getFullYear()).required(),
-    graduatedYear: Joi.number().integer().min(Joi.ref('startYear')).max(new Date().getFullYear()),
+    startYear: Joi.number().integer().required(),
+    graduatedYear: Joi.number().integer().required(),
   }),
 };
 

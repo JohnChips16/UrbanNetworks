@@ -15,6 +15,20 @@ const upload = multer({
 const rateLimit = require('express-rate-limit');
 
 
+
+const {networkAlumni,
+  networkAlumniByDegreeSpec,
+  networkThisAlumni,
+  applicantByPost,
+  applicantByEvent,
+  applicantByJob
+} = require('../services/networking/school_network')
+const { networkbyskills, networkbyabout,
+matchuserbyAttach,
+getAllbycred
+} = require('../services/networking/user_network')
+
+
 const postLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 5,
@@ -25,8 +39,21 @@ const {
   fetchLinkedIn,
   fetchLinkedInLocReccomendation,
   fetchNewsLocationCategories,
+  fetchLinkedInSkillsPointed,
   fetchNewsLocation,
 } = require('../controllers/get_univ')
+
+const {
+  getIndeedjobs,
+  getIndeedJobsBySkillSingle,
+  getIndeedJobsBySkillRoulette,
+  getIndeedJobsByQueryRoulette,
+  getIndeedJobsByQueryDefaultRoulette,
+} = require('../services/getIndeedJob')
+
+// const {
+//   getLinkedinJobsGeneric
+// } = require('../services/linkedin/searchjobs')
 
 {/*school*/}
 
@@ -43,7 +70,25 @@ const {
   sretrievePostFeed,
   sretrieveSuggestedPosts,
   sretrieveHashtagPosts,
+  sretrieveAllPosts,
+  sretrieveQueryPosts,
+  sretrievePostLoc,
+  sretrievePostMatchBySkills
 } = require('../controllers/school/post.controller.js');
+
+
+
+const {
+  sscreatePost,
+  ssretrievePost,
+  ssdeletePost,
+  ssretrievePostFeed,
+  ssretrieveSuggestedPosts,
+  ssretrieveHashtagPosts,
+  ssretrieveAllPosts,
+  ssretrieveQueryPosts,
+  ssretrievePostLoc,
+} = require('../controllers/school/newswire.controller.js');
 
 const {
   createJob,
@@ -52,6 +97,12 @@ const {
   retrieveJobFeed,
   retrieveSuggestedJobs,
   retrieveHashtagJobs,
+  retrieveAllJobs,
+  retriveQueryJobs,
+ retrieveJobLoc,
+ retrieveJobMatchBySkills,
+ matchjobsbyAttach,
+ jobnetbyabout
 } = require('../controllers/school/job.controller.js');
 
 const {
@@ -61,6 +112,10 @@ const {
   retrieveEventFeed,
   retrieveSuggestedEvents,
   retrieveHashtagEvents,
+  sretrieveAllEvents,
+  sretrieveQueryEvents,
+  sretrieveEventLoc,
+  sretrieveEventMatchBySkills
 } = require('../controllers/school/event.controller.js');
 
 const {
@@ -100,6 +155,31 @@ router.get('/school/post/feed/:offset', auth(), sretrievePostFeed);
 router.get('/school/post/hashtag/:hashtag/:offset', auth(), sretrieveHashtagPosts);
 router.delete('/school/post/:postId', auth('school'), sdeletePost);
 
+router.get('/school/post/fetch/all', sretrieveAllPosts)
+router.get('/school/post/q/:query', sretrieveQueryPosts)
+router.get('/school/post/q/matchby/loc', auth(), sretrievePostLoc)
+router.get('/school/post/q/matchby/skills', auth('user'), sretrievePostMatchBySkills)
+
+
+
+
+{/*news section*/}
+
+
+router.post('/school/news', postLimiter, auth('school'), upload, sscreatePost);
+
+router.get('/school/news/:postId', ssretrievePost);
+router.get('/school/news/feed/:offset', auth(), ssretrievePostFeed);
+router.get('/school/news/hashtag/:hashtag/:offset', auth(), ssretrieveHashtagPosts);
+router.delete('/school/news/:postId', auth('school'), ssdeletePost);
+
+router.get('/school/news/fetch/all', ssretrieveAllPosts)
+router.get('/school/news/q/:query', ssretrieveQueryPosts)
+router.get('/school/news/q/matchby/loc', auth(), ssretrievePostLoc)
+{/*news preference algorithm goes here*/}
+
+
+
 {/*job section*/}
 
 router.post('/school/job', postLimiter, auth('school'), upload, createJob);
@@ -108,6 +188,15 @@ router.get('/school/job/feed/:offset', auth(), retrieveJobFeed);
 router.get('/school/job/hashtag/:hashtag/:offset', auth(), retrieveHashtagJobs);
 router.delete('/school/job/:jobId', auth('school'), deleteJob);
 
+{/*retrieve algol*/}
+
+//retrieve all jobs
+router.get('/school/job/fetch/all', retrieveAllJobs)
+router.get('/school/job/q/:query', retriveQueryJobs)
+router.get('/school/job/q/matchby/loc', auth(), retrieveJobLoc)
+router.get('/school/job/q/matchby/skills', auth('user'), retrieveJobMatchBySkills)
+router.get('/school/job/matchby/this/cred', auth('user'), matchjobsbyAttach)
+router.get('/school/job/matchby/this/about', auth('user'), jobnetbyabout)
 {/*Event section*/}
 
 router.post('/school/event', postLimiter, auth('school'), upload, createEvent);
@@ -115,6 +204,12 @@ router.get('/school/event/:eventId', retrieveEvent);
 router.get('/school/event/feed/:offset', auth(), retrieveEventFeed);
 router.get('/school/event/hashtag/:hashtag/:offset', auth(), retrieveHashtagEvents);
 router.delete('/school/event/:eventId', auth('school'), deleteEvent);
+
+router.get('/school/event/fetch/all', sretrieveAllEvents)
+router.get('/school/event/q/:query', sretrieveQueryEvents)
+router.get('/school/event/q/matchby/loc', auth(), sretrieveEventLoc)
+router.get('/school/event/q/matchby/skills', auth('user'), sretrieveEventMatchBySkills)
+
 
 {/*user section*/}
 
@@ -381,11 +476,15 @@ router.get('/notif/', auth('user'), retrieveNotifications);
 router.put('/notif/', auth('user'), readNotifications);
 
 
+{/*linkedin part of*/}
+
 router.get('/school/search/institute/:search_university/limit/:search_limit', searchInstitute)
 
-router.post('/linkedin/jobs', auth(), fetchLinkedIn)
+router.post('/linkedin/jobs/q/:keyword/l/:location/dtp/:dateSincePosted/jtp:jobType/rmtf/:remoteFilter/slry/:salary/exprl/:experienceLevel/limit/:limit', auth(), fetchLinkedIn)
 
-router.get('/linkedin/jobs/loc', auth(), fetchLinkedInLocReccomendation)
+router.get('/linkedin/jobs/alg/byloc', auth(), fetchLinkedInLocReccomendation)
+
+router.get('/linkedin/jobs/alg/skillpointed/default_q', auth('user'), fetchLinkedInSkillsPointed)
 
 router.get('/news/location/', auth(), fetchNewsLocation)
 
@@ -416,7 +515,47 @@ router.put('/email/:id/untrash', auth(), removeFromTrash);
 router.put('/email/:id/:toggle', auth(), toggleEmailProperty);
 router.delete('/email/:id', auth(), deleteEmail);
 
+{/*linkedin*/}
 
+// router.get('/search/GET/linkedin/jobs/:keyword/location/:location', auth(), getLinkedinJobsGeneric)
+
+{/*indeed*/}
+
+router.get('/GET/jobs/indeed/query/:queryParam/location/:locationParam/jobtype/:jobtypeParam/level/:levelParam/limit/:limitParam', auth(), getIndeedjobs)
+router.get('/GET/jobs/indeed/randomquery/skill_pointed', auth('user'), getIndeedJobsBySkillSingle)
+router.get('/GET/jobs/indeed/randomquery/skill_pointed/randomized', auth('user'), getIndeedJobsBySkillRoulette)
+router.get('/GET/jobs/indeed/randomquery/query/:queryParam/randomized', auth('user'), getIndeedJobsByQueryRoulette)
+router.get('/GET/jobs/indeed/randomquery/default/randomized', auth('user'), getIndeedJobsByQueryDefaultRoulette)
+
+
+
+
+{/*networking & get applicants*/}
+
+
+router.get('/urb/network/matchby/alumni', auth('user'), networkAlumni)
+router.get('/urb/network/matchby/alumni/skillspec', auth('user'), networkAlumniByDegreeSpec)
+router.get('/urb/network/matchby/thisalumni', auth('school'), networkThisAlumni)
+router.get('/urb/network/applicant/matchby/thispost', auth('school'), applicantByPost)
+router.get('/urb/network/applicant/matchby/thisevent', auth('school'), applicantByEvent)
+router.get('/urb/network/applicant/matchby/thisjob', auth('school'), applicantByJob)
+//router.get('/urb/network/applicant/matchby/themAccs', auth('school'), applicantByThemAccs)
+//router.get('/urb/network/applicant/matchby/themAbout', auth('school'), applicantByThemAbout)
+//router.get('/urb/network/applicant/matchby/themEdDegree', auth('school'), applicantByThemEducationDegree)
+//router.get('/urb/network/applicant/matchby/themSkills', auth('school'), applicantByThemSkills)
+{/*is this done? i already fetch the accs, about, skills in job. not a job? then what?*/}
+
+router.get('/urb/network/matchby/user/skills', auth('user'), networkbyskills)
+router.get('/urb/network/matchby/user/about', auth('user'), networkbyabout)
+router.get('/urb/network/matchby/user/attach', auth('user'), matchuserbyAttach)
+router.get('/urb/network/get/all/attach/limit/:sortbylimit', getAllbycred)
+
+
+// router.get('/GET/jobs/indeed/byloc/', auth(), getIndeedJobsByLoc)
+
+// router.get('/GET/jobs/indeed/bytype/', auth(), getIndeedJobsByType)
+
+// router.get('/GET/jobs/indeed/bylevel/', auth(), getIndeedJobsByLevel)
 
 
 /*Search for user other creds. (e.g.) education, org, etc.*/

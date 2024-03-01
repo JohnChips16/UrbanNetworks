@@ -2,24 +2,23 @@ const cloudinary = require('cloudinary').v2;
 const linkify = require('linkifyjs');
 const axios = require('axios');
 require('linkify-plugin-hashtag')
-const Post = require('../../../models/userPost.post.model.js');
 const Following = require('../../../models/Following.model');
 const Followers = require('../../../models/Followers.model');
 const Notification = require('../../../models/Notification.model');
+const News = require('../../../models/usernews.model');
 const fs = require('fs');
 const ObjectId = require('mongoose').Types.ObjectId;
 const UserSkill = require('../../../models/userSkill.model')
 const {
-  
   formatCloudinaryUrl,
   spopulatePostsPipeline,
 } = require('../../../utils/controllerUtils');
 
 
 /*optional req.file*/
-module.exports.screatePost = async (req, res, next) => {
+module.exports.sscreatePost = async (req, res, next) => {
   const user = req.user;
-  const { caption } = req.body;
+  const { title, caption, datePosted, url,   } = req.body;
   let post = undefined;
 
   const hashtags = [];
@@ -72,11 +71,14 @@ module.exports.screatePost = async (req, res, next) => {
       fs.unlinkSync(req.file.path);
     }
 
-    post = new Post({
+    post = new News({
+      title,
       attachment: response ? response.secure_url : undefined,
+      url,
+      datePosted,
       caption,
-      author: user._id,
       hashtags,
+      author: user._id,
     });
 
     await post.save();
@@ -113,19 +115,19 @@ module.exports.screatePost = async (req, res, next) => {
 
 
 
-module.exports.sdeletePost = async (req, res, next) => {
+module.exports.ssdeletePost = async (req, res, next) => {
   const { postId } = req.params;
   const user = req.user;
 
   try {
-    const post = await Post.findOne({ _id: postId, author: user._id });
+    const post = await News.findOne({ _id: postId, author: user._id });
     if (!post) {
       return res.status(404).send({
         error: 'Could not find a post with that id associated with the user.',
       });
     }
     // This uses pre hooks to delete everything associated with this post i.e comments
-    const postDelete = await Post.deleteOne({
+    const postDelete = await News.deleteOne({
       _id: postId,
     });
     if (!postDelete.deletedCount) {
@@ -148,11 +150,11 @@ module.exports.sdeletePost = async (req, res, next) => {
   }
 };
 
-module.exports.sretrievePost = async (req, res, next) => {
+module.exports.ssretrievePost = async (req, res, next) => {
   const { postId } = req.params;
   try {
     // Retrieve the post and the post's votes
-    const post = await Post.aggregate([
+    const post = await News.aggregate([
       { $match: { _id: ObjectId(postId) } },
       {
         $lookup: {
@@ -184,7 +186,7 @@ module.exports.sretrievePost = async (req, res, next) => {
 };
 
 
-module.exports.sretrievePostFeed = async (req, res, next) => {
+module.exports.ssretrievePostFeed = async (req, res, next) => {
   const user = req.user;
   const { offset } = req.params;
 
@@ -205,7 +207,7 @@ module.exports.sretrievePostFeed = async (req, res, next) => {
       
     ];
 
-   const posts = await Post.aggregate([
+   const posts = await News.aggregate([
   {
     $match: {
       $or: [{ author: { $in: following } }, { author: ObjectId(user._id) }],
@@ -235,11 +237,11 @@ module.exports.sretrievePostFeed = async (req, res, next) => {
   }
 };
 
-module.exports.sretrieveSuggestedPosts = async (req, res, next) => {
+module.exports.ssretrieveSuggestedPosts = async (req, res, next) => {
   const { offset = 0 } = req.params;
 
   try {
-    const posts = await Post.aggregate([
+    const posts = await News.aggregate([
       {
         $sort: { date: -1 },
       },
@@ -260,11 +262,11 @@ module.exports.sretrieveSuggestedPosts = async (req, res, next) => {
   }
 };
 
-module.exports.sretrieveHashtagPosts = async (req, res, next) => {
+module.exports.ssretrieveHashtagPosts = async (req, res, next) => {
   const { hashtag, offset } = req.params;
 
   try {
-    const posts = await Post.aggregate([
+    const posts = await News.aggregate([
       {
         $facet: {
           posts: [
@@ -307,9 +309,9 @@ module.exports.sretrieveHashtagPosts = async (req, res, next) => {
     next(err);
   }
 };
-module.exports.sretrieveAllPosts = async (req, res) => {
+module.exports.ssretrieveAllPosts = async (req, res) => {
   try {
-    const allPosts = await Post.find({}).populate({
+    const allPosts = await News.find({}).populate({
       path: 'author',
       select: 'username fullname schoolOrUniversityName location avatarPic about',
     });
@@ -325,12 +327,13 @@ module.exports.sretrieveAllPosts = async (req, res) => {
     });
   }
 }
-module.exports.sretrieveQueryPosts = async (req, res) => {
+module.exports.ssretrieveQueryPosts = async (req, res) => {
   const { query } = req.params;
   try {
     const regex = new RegExp(query, 'i');
-    const matchedPosts = await Post.find({
+    const matchedPosts = await News.find({
       $or: [
+        { title: { $regex: regex } },
         { caption: { $regex: regex } },
         { hashtags: { $in: [regex] } },
       ]
@@ -360,13 +363,14 @@ module.exports.sretrieveQueryPosts = async (req, res) => {
     });
   }
 }
-module.exports.sretrievePostLoc = async (req, res) => {
+module.exports.ssretrievePostLoc = async (req, res) => {
   const user = req.user;
   const userloc = user.location;
   try {
     const regex = new RegExp(userloc, 'i');
-   const matchedPosts = await Post.find({
+   const matchedPosts = await News.find({
       $or: [
+        { title: { $regex: regex } },
         { caption: { $regex: regex } },
         { hashtags: { $in: [regex] } },
       ]
@@ -395,52 +399,52 @@ module.exports.sretrievePostLoc = async (req, res) => {
     });
   }
 }
-module.exports.sretrievePostMatchBySkills = async (req, res) => {
-  const user = req.user;
-  try {
-    const userSkills = await UserSkill.aggregate([
-      {
-        $match: {
-          user: user._id
-        }
-      },
-      {
-        $project: {
-          _id: 0,
-          skill: 1,
-          description: 1
-        }
-      }
-    ]);
-    const skills = userSkills.map(skillObj => skillObj.skill);
-    const regex = new RegExp(skills.join('|'), 'i'); 
-     const matchedPosts = await Post.find({
-      $or: [
-        { caption: { $regex: regex } },
-        { hashtags: { $in: [regex] } },
-      ]
-    }).populate({
-      path: 'author',
-      select: 'username fullname schoolOrUniversityName location avatarPic about',
-      match: {
-        $or: [
-          { username: { $regex: regex } },
-          { fullname: { $regex: regex } },
-          { schoolOrUniversityName: { $regex: regex } },
-          { location: { $regex: regex } },
-          { about: { $regex: regex } },
-        ]
-      }
-    });
-    res.status(200).json({
-      _status: 'SUCCESS',
-      data: matchedPosts
-    });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({
-      _STATUS: 'BAD',
-      _ERR: err
-    });
-  }
-}
+// module.exports.sretrievePostMatchBySkills = async (req, res) => {
+//   const user = req.user;
+//   try {
+//     const userSkills = await UserSkill.aggregate([
+//       {
+//         $match: {
+//           user: user._id
+//         }
+//       },
+//       {
+//         $project: {
+//           _id: 0,
+//           skill: 1,
+//           description: 1
+//         }
+//       }
+//     ]);
+//     const skills = userSkills.map(skillObj => skillObj.skill);
+//     const regex = new RegExp(skills.join('|'), 'i'); 
+//     const matchedPosts = await Post.find({
+//       $or: [
+//         { caption: { $regex: regex } },
+//         { hashtags: { $in: [regex] } },
+//       ]
+//     }).populate({
+//       path: 'author',
+//       select: 'username fullname schoolOrUniversityName location avatarPic about',
+//       match: {
+//         $or: [
+//           { username: { $regex: regex } },
+//           { fullname: { $regex: regex } },
+//           { schoolOrUniversityName: { $regex: regex } },
+//           { location: { $regex: regex } },
+//           { about: { $regex: regex } },
+//         ]
+//       }
+//     });
+//     res.status(200).json({
+//       _status: 'SUCCESS',
+//       data: matchedPosts
+//     });
+//   } catch (err) {
+//     console.error(err);
+//     res.status(500).json({
+//       _STATUS: 'BAD',
+//       _ERR: err
+//     });
+//   }
+// }

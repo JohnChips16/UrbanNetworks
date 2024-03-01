@@ -70,8 +70,7 @@ const userSchema = mongoose.Schema(
   avatarPic: String,
   backgroundPic: String,
     about: {
-      type: String, // You can adjust the type based on your requirements
-      trim: true,
+      type: String,
     },
     mailbox: {
       inbox: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Email' }],

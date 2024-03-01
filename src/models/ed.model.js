@@ -13,11 +13,11 @@ const educationSchema = new mongoose.Schema({
     type: String,
   },
   startYear: {
-    type: Number,
+    type: String,
     required: true,
   },
   graduatedYear: {
-    type: Number,
+    type: String,
   },
   user: {
     type: mongoose.Schema.Types.ObjectId,

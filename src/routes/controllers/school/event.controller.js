@@ -400,3 +400,150 @@ module.exports.retrieveHashtagEvents = async (req, res, next) => {
     next(err);
   }
 };
+module.exports.sretrieveAllEvents = async (req, res) => {
+  try {
+    const allPosts = await Event.find({}).populate({
+      path: 'author',
+      select: 'username fullname schoolOrUniversityName location avatarPic about',
+    });
+    res.status(200).json({
+      _status: 'success',
+      data: allPosts
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({
+      _status: 'error',
+      _error: err.message
+    });
+  }
+}
+module.exports.sretrieveQueryEvents = async (req, res) => {
+  const { query } = req.params;
+  try {
+    const regex = new RegExp(query, 'i');
+    const matchedPosts = await Event.find({
+      $or: [
+        { title: { $regex: regex } },
+        { url: { $regex: regex } },
+        { locationOrPlatform: { $regex: regex } },
+        { caption: { $regex: regex } },
+        { hashtags: { $in: [regex] } },
+      ]
+    }).populate({
+      path: 'author',
+      select: 'username fullname schoolOrUniversityName location avatarPic about',
+      match: {
+        $or: [
+          { username: { $regex: regex } },
+          { fullname: { $regex: regex } },
+          { schoolOrUniversityName: { $regex: regex } },
+          { location: { $regex: regex } },
+          { about: { $regex: regex } },
+        ]
+      }
+    });
+    res.status(200).json({
+      _status: 'success',
+      data: matchedPosts
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({
+      _status: 'error',
+      _error: err.message,
+      _query: query
+    });
+  }
+}
+module.exports.sretrieveEventLoc = async (req, res) => {
+  const user = req.user;
+  const userloc = user.location;
+  try {
+    const regex = new RegExp(userloc, 'i');
+   const matchedPosts = await Event.find({
+      $or: [
+        { title: { $regex: regex } },
+        { url: { $regex: regex } },
+        { locationOrPlatform: { $regex: regex } },
+        { caption: { $regex: regex } },
+        { hashtags: { $in: [regex] } },
+      ]
+    }).populate({
+      path: 'author',
+      select: 'username fullname schoolOrUniversityName location avatarPic about',
+      match: {
+        $or: [
+          { username: { $regex: regex } },
+          { fullname: { $regex: regex } },
+          { schoolOrUniversityName: { $regex: regex } },
+          { location: { $regex: regex } },
+          { about: { $regex: regex } },
+        ]
+      }
+    });
+    res.status(200).json({
+      _status: 'SUCCESS',
+      data: matchedPosts
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({
+      _status: 'BAD',
+      _error: err.message
+    });
+  }
+}
+module.exports.sretrieveEventMatchBySkills = async (req, res) => {
+  const user = req.user;
+  try {
+    const userSkills = await UserSkill.aggregate([
+      {
+        $match: {
+          user: user._id
+        }
+      },
+      {
+        $project: {
+          _id: 0,
+          skill: 1,
+          description: 1
+        }
+      }
+    ]);
+    const skills = userSkills.map(skillObj => skillObj.skill);
+    const regex = new RegExp(skills.join('|'), 'i'); 
+     const matchedPosts = await Event.find({
+      $or: [
+        { title: { $regex: regex } },
+        { url: { $regex: regex } },
+        { locationOrPlatform: { $regex: regex } },
+        { caption: { $regex: regex } },
+        { hashtags: { $in: [regex] } },
+      ]
+    }).populate({
+      path: 'author',
+      select: 'username fullname schoolOrUniversityName location avatarPic about',
+      match: {
+        $or: [
+          { username: { $regex: regex } },
+          { fullname: { $regex: regex } },
+          { schoolOrUniversityName: { $regex: regex } },
+          { location: { $regex: regex } },
+          { about: { $regex: regex } },
+        ]
+      }
+    });
+    res.status(200).json({
+      _status: 'SUCCESS',
+      data: matchedPosts
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({
+      _STATUS: 'BAD',
+      _ERR: err
+    });
+  }
+}
+

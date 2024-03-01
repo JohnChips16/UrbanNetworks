@@ -59,12 +59,13 @@ const deleteAbout = catchAsync(async (req, res) => {
   res.status(httpStatus.CREATED).send(about);
 });
 
-const putAbout= catchAsync(async (req, res) => {
+const putAbout = catchAsync(async (req, res) => {
   const currentUser = req.user;
-  const about = await userService.putAbout(currentUser, req.body
-  );
-  res.status(httpStatus.CREATED).send(about);
+  const { about } = req.body; // Extract 'about' from req.body
+  const updatedAbout = await userService.putAbout(currentUser, about);
+  res.status(httpStatus.CREATED).send(updatedAbout);
 });
+
 
 const addAccompOrg = catchAsync(async (req, res) => {
   const currentUser = req.user;
