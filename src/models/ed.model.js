@@ -26,6 +26,15 @@ const educationSchema = new mongoose.Schema({
   },
 });
 
+// Create text index for every string field
+educationSchema.index({
+  schoolOrUniversity: 'text',
+  degree: 'text',
+  specialization: 'text',
+  startYear: 'text',
+  graduatedYear: 'text'
+});
+
 const Education = mongoose.model('Education', educationSchema);
 
 module.exports = Education;

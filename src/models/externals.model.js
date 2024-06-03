@@ -16,6 +16,14 @@ const externalSchema = new mongoose.Schema({
   },
 });
 
+// Create indexes for all string fields
+for (const path in externalSchema.paths) {
+  const field = externalSchema.paths[path];
+  if (field.instance === 'String') {
+    externalSchema.index({ [path]: 'text' });
+  }
+}
+
 const External = mongoose.model('External', externalSchema);
 
 module.exports = External;

@@ -25,6 +25,14 @@ const accTestScoreSchema = new mongoose.Schema({
   },
 });
 
+// Create indexes for all string fields
+for (const path in accTestScoreSchema.paths) {
+  const field = accTestScoreSchema.paths[path];
+  if (field.instance === 'String') {
+    accTestScoreSchema.index({ [path]: 'text' });
+  }
+}
+
 const AccTestScore = mongoose.model('AccTestScore', accTestScoreSchema);
 
 module.exports = AccTestScore;

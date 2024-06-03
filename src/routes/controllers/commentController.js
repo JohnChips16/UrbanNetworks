@@ -1,10 +1,10 @@
-const Comment = require('../../models/userPost.comment.model.js');
+const Comment = require('../../models/userPost.comment.model');
 const CommentVote = require('../../models/userPost.commentVote.model.js');
 const CommentReply = require('../../models/userPost.commentReply.model.js');
 const CommentReplyVote = require('../../models/userPost.commentReplyVote.model.js');
 const Post = require('../../models/userPost.post.model.js');
 const ObjectId = require('mongoose').Types.ObjectId;
-
+const mongoose = require('mongoose')
 const {
   retrieveComments,
   formatCloudinaryUrl,
@@ -41,7 +41,7 @@ module.exports.createComment = async (req, res, next) => {
     await comment.save();
     res.status(201).send({
       ...comment.toObject(),
-      author: { fullname: user.fullname,
+      author: { fullname: user.fullname, school: user.schoolOrUniversityName,
             username: user.username, avatarPic: user.avatarPic },
       commentVotes: [],
     });
@@ -352,5 +352,36 @@ module.exports.retrieveComments = async (req, res, next) => {
     return res.send(comments);
   } catch (err) {
     next(err);
+  }
+};
+module.exports.parrent = async (req, res) => {
+  const { postId } = req.params;
+  try {
+    const comments = await Comment.find({ post: postId })
+      .populate({
+        path: 'author',
+        select: 'fullname username avatarPic about location'
+      })
+      .sort({ date: -1 }); // Sort by createdAt field in descending order
+
+    res.status(200).send(comments);
+  } catch (err) {
+    console.error("Error:", err.message);
+    res.status(500).send({ error: err.message });
+  }
+};
+module.exports.replies = async (req, res) => {
+  const { parentId } = req.params;
+  try {
+    const replies = await CommentReply.find({ parentComment: parentId })
+      .populate({
+        path: 'author',
+        select: 'fullname username avatarPic about location' // Exclude parentComment
+      })
+      .sort({ date: -1 }); // Sort by createdAt field in descending order
+
+    res.status(200).send({ replies });
+  } catch (err) {
+    res.status(500).send({ error: err.message });
   }
 };

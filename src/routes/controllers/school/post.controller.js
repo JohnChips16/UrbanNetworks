@@ -9,6 +9,7 @@ const Notification = require('../../../models/Notification.model');
 const fs = require('fs');
 const ObjectId = require('mongoose').Types.ObjectId;
 const UserSkill = require('../../../models/userSkill.model')
+const PostVote = require('../../../models/userPost.vote.model')
 const {
   
   formatCloudinaryUrl,
@@ -444,3 +445,46 @@ module.exports.sretrievePostMatchBySkills = async (req, res) => {
     });
   }
 }
+module.exports.votethispost = async (req, res, next) => {
+  const { postId } = req.params;
+  const user = req.user;
+
+  try {
+    // Check if the user has already voted on the post
+    const postVote = await PostVote.findOne({ post: postId, 'votes.author': user._id });
+
+    if (postVote) {
+      // User has already voted, so remove their vote
+      const result = await PostVote.updateOne(
+        { post: postId },
+        { $pull: { votes: { author: user._id } } }
+      );
+
+      if (result.nModified > 0) {
+        console.log('Successfully unliked the post');
+        return res.send({ success: true, message: 'Unliked the post.' });
+      } else {
+        console.log('No like to remove');
+        return res.send({ success: true, message: 'No like to remove.' });
+      }
+    } else {
+      // User has not voted yet, so add their vote
+      const result = await PostVote.updateOne(
+        { post: postId },
+        { $push: { votes: { author: user._id } } }
+      );
+
+      if (result.nModified > 0) {
+        console.log('Successfully liked the post');
+        // Sending a like notification should be implemented here
+        return res.send({ success: true, message: 'Liked the post.' });
+      } else {
+        console.log('Failed to like the post');
+        return res.status(500).send({ error: 'Could not vote on the post.' });
+      }
+    }
+  } catch (err) {
+    console.error(err);
+    return res.status(500).send({ error: 'Could not vote on the post.', err: err });
+  }
+};

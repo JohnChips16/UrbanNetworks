@@ -24,6 +24,13 @@ const accLangSchema = new mongoose.Schema({
   },
 });
 
+// Define text index on language field
+accLangSchema.index({
+  language: 'text',
+  proficiency: 'text',
+});
+
+
 const AccLang = mongoose.model('AccLang', accLangSchema);
 
 module.exports = AccLang;

@@ -14,46 +14,38 @@ const getRandomElement = (array) => {
 };
 module.exports.getIndeedjobs = async (req, res) => {
     const user = req.user;
-    let { queryParam, locationParam, jobtypeParam, levelParam, limitParam } = req.params;
-    if (!locationParam) {
-        locationParam = user.location;
-    }
-    if (!limitParam) {
-        limitParam = 100;
-    }
-    if (!queryParam || !locationParam || !jobtypeParam || !levelParam) {
-        return res.status(400).send({
-            _status: 'bad',
-            _error: 'queryParam, locationParam, jobtypeParam, levelParam cannot be undefined'
-        });
-    }
+    const { queryParam, locationParam, jobtypeParam, levelParam, limitParam } = req.query;
+
+    const location = locationParam || user.location;
+    const limit = limitParam || 25;
+
     try {
         const queryOptions = {
             host: 'www.indeed.com',
-            query: queryParam,
-            city: locationParam,
+            query: '',
+            city: user.location || '',
             radius: '',
-            level: levelParam,
-            jobType: jobtypeParam,
+            level: '',
+            jobType: '',
             maxAge: '',
             sort: 'date',
-            limit: limitParam
+            limit: 25
         };
-        indeed.query(queryOptions).then(result => {
-            console.log(result); // An array of Job objects
-            res.status(200).send({
-                _from: 'Indeed',
-                _response: result
-            })
+        
+        const result = await indeed.query(queryOptions);
+        console.log(result); // An array of Job objects
+        res.status(200).send({
+            _from: 'Indeed',
+            _response: result
         });
     } catch (err) {
-        console.log(err)
+        console.error(err);
         res.status(500).send({
             _status: 'bad',
-            _error: err
-        })
+            _error: err.message
+        });
     }
-}
+};
 module.exports.getIndeedJobsBySkillSingle = async (req, res) => {
   const user = req.user;
   try {

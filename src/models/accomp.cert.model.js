@@ -34,6 +34,15 @@ const accCertSchema = new mongoose.Schema({
   },
 });
 
+// Define text index on CertName, CertAuthority, and LicenseNum fields
+for (const path in accCertSchema.paths) {
+  const field = accCertSchema.paths[path];
+  if (field.instance === 'String') {
+    accCertSchema.index({ [path]: 'text' });
+  }
+}
+
+
 accCertSchema.pre('save', function (next) {
   if (this.expire) {
     this.dateThen = new Date();

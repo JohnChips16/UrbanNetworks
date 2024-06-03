@@ -17,6 +17,14 @@ const userSkillSchema = new mongoose.Schema({
   },
 });
 
+// Create indexes for all string fields
+for (const path in userSkillSchema.paths) {
+  const field = userSkillSchema.paths[path];
+  if (field.instance === 'String') {
+    userSkillSchema.index({ [path]: 'text' });
+  }
+}
+
 const UserSkill = mongoose.model('UserSkill', userSkillSchema);
 
 module.exports = UserSkill;

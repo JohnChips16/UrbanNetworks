@@ -11,6 +11,7 @@ const AccAwrd = require('../../../models/accomp.awrd.model')
 const AccompOrg = require('../../../models/accomp.org.model')
 const AccPub = require('../../../models/accomp.pub.model')
 const AccProj = require('../../../models/accomp.proj.model')
+const Education = require('../../../models/ed.model')
 const fs = require('fs');
 const ObjectId = require('mongoose').Types.ObjectId;
 const { fuzzyFilter } = require('fuzzbunny');
@@ -271,6 +272,7 @@ module.exports.retrievejob = async (req, res, next) => {
         $unset: [
           'author.password',
           'author.email',
+          'author.mailbox',
         ],
       },
     ]);
@@ -573,16 +575,7 @@ module.exports.retrieveJobMatchBySkills = async (req, res) => {
       ]
     }).populate({
       path: 'author',
-      select: 'username fullname schoolOrUniversityName location avatarPic about',
-      match: {
-        $or: [
-          { username: { $regex: regex } },
-          { fullname: { $regex: regex } },
-          { schoolOrUniversityName: { $regex: regex } },
-          { location: { $regex: regex } },
-          { about: { $regex: regex } },
-        ]
-      }
+      select: 'username fullname schoolOrUniversityName location avatarPic about'
     });
     res.status(200).json({
       _status: 'SUCCESS',
@@ -1061,6 +1054,73 @@ module.exports.matchjobsbyAttach = async (req, res) => {
         });
       });
     });
+    
+    
+    
+    
+    
+     const userEdu = await Education.aggregate([
+      {
+        $match: {
+          user: user._id
+        }
+      },
+      {
+        $project: {
+          _id: 0,
+          schoolOrUniversity: 1,
+          degree: 1,
+          specialization: 1
+        }
+      }
+    ]);
+    const eduname = userEdu.map(skillObj => skillObj.schoolOrUniversity);
+    const edudegree = userEdu.map(skillObj => skillObj.degree);
+    const eduspec = userEdu.map(skillObj => skillObj.specialization);
+ 
+    eduname.forEach(schoolOrUniversity => {
+      allJobs.forEach(job => {
+        const jobFields = [job.caption, job.title, job.location, job.jobReq, job.numEmployee, job.typeofJob, job.skillReq.join(', '), job.author.about, job.urlApply];
+        jobFields.forEach(field => {
+          const score = fuzz.partial_ratio(schoolOrUniversity, field);
+          if (score >= 60) {
+            const isMatched = matchedJobs.some(match => match.job._id === job._id);
+            if (!isMatched) {
+              matchedJobs.push({ schoolOrUniversity, job, field, score });
+            }
+          }
+        });
+      });
+    });
+    edudegree.forEach(degree => {
+      allJobs.forEach(job => {
+        const jobFields = [job.caption, job.title, job.location, job.jobReq, job.numEmployee, job.typeofJob, job.skillReq.join(', '), job.author.about, job.urlApply];
+        jobFields.forEach(field => {
+          const score = fuzz.partial_ratio(degree, field);
+          if (score >= 65) {
+            const isMatched = matchedJobs.some(match => match.job._id === job._id);
+            if (!isMatched) {
+              matchedJobs.push({ degree, job, field, score });
+            }
+          }
+        });
+      });
+    });
+    eduspec.forEach(specialization => {
+      allJobs.forEach(job => {
+        const jobFields = [job.caption, job.title, job.location, job.jobReq, job.numEmployee, job.typeofJob, job.skillReq.join(', '), job.author.about, job.urlApply];
+        jobFields.forEach(field => {
+          const score = fuzz.partial_ratio(specialization, field);
+          if (score >= 70) {
+            const isMatched = matchedJobs.some(match => match.job._id === job._id);
+            if (!isMatched) {
+              matchedJobs.push({ specialization, job, field, score });
+            }
+          }
+        });
+      });
+    });
+    {/*from other Schema*/}
     res.status(200).json({
       _status: 'SUCCESS',
       _matchedJobs: matchedJobs
@@ -1079,20 +1139,20 @@ module.exports.jobnetbyabout = async (req, res) => {
   try {
     const regex = new RegExp(userabt, 'i');
     const matchedUsers = await Job.find({
-    $or: [
-        { title: { $regex: regex, $options: 'i' } },
-        { location: { $regex: regex, $options: 'i' } },
-        { jobReq: { $regex: regex, $options: 'i' } },
-        { numEmployee: { $regex: regex, $options: 'i' } },
-        { typeofJob: { $regex: regex, $options: 'i' } },
-        { urlApply: { $regex: regex, $options: 'i' } },
-        { caption: { $regex: regex, $options: 'i' } },
-        { 'skillReq': { $regex: regex, $options: 'i' } }
+      $or: [
+        { title: regex },
+        { location: regex },
+        { jobReq: regex },
+        { numEmployee: regex },
+        { typeofJob: regex },
+        { urlApply: regex },
+        { caption: regex },
+        { 'skillReq': regex }
       ]
     }).populate({
       path: 'user',
       select: 'username fullname schoolOrUniversityName location avatarPic about',
-    })
+    });
     res.status(200).json({
       _status: 'SUCCESS',
       data: matchedUsers
@@ -1104,4 +1164,4 @@ module.exports.jobnetbyabout = async (req, res) => {
       _error: err.message
     });
   }
-}
+};

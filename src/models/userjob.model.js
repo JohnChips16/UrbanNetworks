@@ -50,6 +50,18 @@ const userJobSchema = new mongoose.Schema({
   },
 });
 
+// Create indexes for all fields
+for (const path in userJobSchema.paths) {
+  const field = userJobSchema.paths[path];
+  if (field.instance === 'String') {
+    userJobSchema.index({ [path]: 'text' });
+  } else if (field.instance === 'Date') {
+    userJobSchema.index({ [path]: 1 });
+  } else if (field.instance === 'ObjectId') {
+    userJobSchema.index({ [path]: 1 });
+  }
+}
+
 const UserJob = mongoose.model('UserJob', userJobSchema);
 
 module.exports = UserJob;

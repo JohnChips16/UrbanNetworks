@@ -19,12 +19,12 @@ const {
 
 
 /*optional req.file*/
-
 module.exports.createPost = async (req, res, next) => {
   const user = req.user;
   const { caption } = req.body;
   let post = undefined;
-  
+  let response;
+
   const hashtags = [];
   linkify.find(caption).forEach((result) => {
     if (result.type === 'hashtag') {
@@ -32,49 +32,22 @@ module.exports.createPost = async (req, res, next) => {
     }
   });
 
-  let response;
-
   if (req.file) {
     cloudinary.config({
-      cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-      api_key: process.env.CLOUDINARY_API_KEY,
-      api_secret: process.env.CLOUDINARY_API_SECRET,
+      cloud_name: 'dfiernykr',
+      api_key: '423216966891983',
+      api_secret: '4cFZ5aVmUmtu3SZdLCD4zQZcvM8',
     });
 
     try {
       response = await cloudinary.uploader.upload(req.file.path);
-    } catch {
+      fs.unlinkSync(req.file.path);
+    } catch (err) {
       return next({ message: 'Error uploading image, please try again later.' });
     }
   }
 
   try {
-    if (response) {
-      const moderationResponse = await axios.get(
-        `https://api.moderatecontent.com/moderate/?key=${process.env.MODERATECONTENT_API_KEY}&url=${response.secure_url}`
-      );
-
-      if (moderationResponse.data.error) {
-        return res
-          .status(500)
-          .send({ error: 'Error moderating image, please try again later.' });
-      }
-
-      if (moderationResponse.data.rating_index > 2) {
-        return res.status(403).send({
-          error: 'The content was deemed too explicit to upload.',
-        });
-      }
-    }
-
-    const thumbnailUrl = response
-      ? formatCloudinaryUrl(response.secure_url, { width: 400, height: 400 }, true)
-      : undefined;
-
-    if (response) {
-      fs.unlinkSync(req.file.path);
-    }
-
     post = new Post({
       attachment: response ? response.secure_url : undefined,
       caption,
@@ -86,10 +59,10 @@ module.exports.createPost = async (req, res, next) => {
 
     res.status(201).send({
       ...post.toObject(),
-      author: { avatar: user.avatarPic, username: user.username, SchoolOrUniversity : user.schoolOrUniversityName },
+      author: { avatar: user.avatarPic, username: user.username, SchoolOrUniversity: user.schoolOrUniversityName, fullname: user.fullname },
     });
   } catch (err) {
-    next(err);
+    return next(err);
   }
 
   try {
@@ -100,7 +73,7 @@ module.exports.createPost = async (req, res, next) => {
       const followers = followersDocument[0].followers;
       const postObject = {
         ...post.toObject(),
-        author: { username: user.username, avatar: user.avatarPic, SchoolOrUniversity: user.schoolOrUniversityName },
+        author: { username: user.username, avatar: user.avatarPic, SchoolOrUniversity: user.schoolOrUniversityName, fullname: user.fullname },
       };
 
       followers.forEach((follower) => {
@@ -113,8 +86,6 @@ module.exports.createPost = async (req, res, next) => {
     console.log(err);
   }
 };
-
-
 
 
 
@@ -446,48 +417,16 @@ module.exports.retrieveSuggestedPosts = async (req, res, next) => {
 };
 
 module.exports.retrieveHashtagPosts = async (req, res, next) => {
-  const { hashtag, offset } = req.params;
-
+  const { hashtag } = req.params;
   try {
-    const posts = await Post.aggregate([
-      {
-        $facet: {
-          posts: [
-            {
-              $match: { hashtags: hashtag },
-            },
-            {
-              $skip: Number(offset),
-            },
-            {
-              $limit: 20,
-            },
-            ...populatePostsPipeline,
-          ],
-          postCount: [
-            {
-              $match: { hashtags: hashtag },
-            },
-            {
-              $group: {
-                _id: null,
-                count: { $sum: 1 },
-              },
-            },
-          ],
-        },
-      },
-      {
-        $unwind: '$postCount',
-      },
-      {
-        $addFields: {
-          postCount: '$postCount.count',
-        },
-      },
-    ]);
+    const posts = await Post.find({ hashtags: { $in: hashtag } })
+      .populate('author', 'username fullname schoolOrUniversityName avatarPic about location ') 
+      .sort({ date: -1 }) 
+      .exec();
 
-    return res.send(posts[0]);
+    const count = posts.length; // Count of retrieved documents
+
+    return res.send({ count, posts }); // Sending count along with the posts
   } catch (err) {
     next(err);
   }

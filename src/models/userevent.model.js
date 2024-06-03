@@ -41,6 +41,18 @@ const userEventSchema = new Schema({
   },
 });
 
+// Create indexes for all fields
+for (const path in userEventSchema.paths) {
+  const field = userEventSchema.paths[path];
+  if (field.instance === 'String') {
+    userEventSchema.index({ [path]: 'text' });
+  } else if (field.instance === 'Date') {
+    userEventSchema.index({ [path]: 1 });
+  } else if (field.instance === 'ObjectId') {
+    userEventSchema.index({ [path]: 1 });
+  }
+}
+
 const UserEvent = mongoose.model('UserEvent', userEventSchema);
 
 module.exports = UserEvent;

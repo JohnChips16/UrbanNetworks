@@ -20,6 +20,20 @@ const PostSchema = new Schema({
   },
 });
 
+// Create indexes for all fields
+for (const path in PostSchema.paths) {
+  const field = PostSchema.paths[path];
+  if (field.instance === 'String') {
+    PostSchema.index({ [path]: 'text' });
+  } else if (field.instance === 'Date') {
+    PostSchema.index({ [path]: 1 });
+  } else if (field.instance === 'ObjectId') {
+    PostSchema.index({ [path]: 1 });
+  }
+}
+
+PostSchema.index({ 'hashtags': 'text' }); // Index for hashtags array
+
 PostSchema.pre('deleteOne', async function (next) {
   const postId = this.getQuery()['_id'];
   try {

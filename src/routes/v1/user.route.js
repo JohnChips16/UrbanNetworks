@@ -4,14 +4,15 @@ const validate = require('../../middlewares/validate');
 const userValidation = require('../../validations/user.validation');
 const userController = require('../../controllers/user.controller');
 const multer = require('multer');
-const router = express.Router();
-
-const path = require('path');
-
 const upload = multer({
   dest: 'temp/',
   limits: { fileSize: 10 * 1024 * 1024 },
 }).single('image');
+const router = express.Router();
+
+const path = require('path');
+
+
 const rateLimit = require('express-rate-limit');
 
 
@@ -23,6 +24,7 @@ const {networkAlumni,
   applicantByEvent,
   applicantByJob
 } = require('../services/networking/school_network')
+const { whoami, retrievepostmy, changeGeneral, changeAttachment, addAttachment, deleteAttachment, uploadAvatar, uploadBackground, threadIds, wwvtag, querysearch, werewolf, postOverview} = require('../controllers/whoami')
 const { networkbyskills, networkbyabout,
 matchuserbyAttach,
 getAllbycred
@@ -73,7 +75,8 @@ const {
   sretrieveAllPosts,
   sretrieveQueryPosts,
   sretrievePostLoc,
-  sretrievePostMatchBySkills
+  sretrievePostMatchBySkills,
+  votethispost
 } = require('../controllers/school/post.controller.js');
 
 
@@ -149,10 +152,10 @@ router.post('/add/commit', postLimiter, auth('school'), upload, addCommit);
 
 
 router.post('/school/post', postLimiter, auth('school'), upload, screatePost);
-
+router.get('/school/suggested/post/:offset', auth(), sretrieveSuggestedPosts)
 router.get('/school/post/:postId', sretrievePost);
 router.get('/school/post/feed/:offset', auth(), sretrievePostFeed);
-router.get('/school/post/hashtag/:hashtag/:offset', auth(), sretrieveHashtagPosts);
+// router.get('/school/post/hashtag/:hashtag/:offset', auth(), sretrieveHashtagPosts);
 router.delete('/school/post/:postId', auth('school'), sdeletePost);
 
 router.get('/school/post/fetch/all', sretrieveAllPosts)
@@ -212,7 +215,7 @@ router.get('/school/event/q/matchby/skills', auth('user'), sretrieveEventMatchBy
 
 
 {/*user section*/}
-
+  router.get('/sys/whoami', auth(), whoami)
   router.get('/school/suggested/:max?', auth(), sretrieveSuggestedUsers);
 router.get('/school/:username', sretrieveUser);
 router.get('/school/:username/posts/:offset', sretrievePosts);
@@ -275,6 +278,8 @@ const {
   voteCommentReply,
   retrieveCommentReplies,
   retrieveComments,
+  parrent,
+  replies
 } = require('../controllers/commentController');
 
 
@@ -373,7 +378,7 @@ router.get('/get/experience', userController.getExperience);
 router.delete('/delete/experience', auth('user'), userController.deleteExperience);
 router.put('/edit/experience', validate(userValidation.userSkillValidation), auth('user'), userController.putExperience);
 
-router.post('/add/externals', validate(userValidation.externalValidation), auth('user'), userController.addExternals);
+router.post('/add/externals', validate(userValidation.externalValidation), auth('user'), upload, userController.addExternals);
 router.get('/get/externals', userController.getExternals);
 router.delete('/delete/externals', auth('user'), userController.deleteExternals);
 router.put('/edit/externals', validate(userValidation.externalValidation), auth('user'), userController.putExternals);
@@ -405,7 +410,7 @@ router.get('/post/suggested/:offset', auth(), retrieveSuggestedPosts);
 
 router.get('/post/:postId', retrievePost);
 router.get('/post/feed/:offset', auth(), retrievePostFeed);
-router.get('/post/hashtag/:hashtag/:offset', retrieveHashtagPosts);
+router.get('/www/tag/:hashtag', wwvtag);
 
 router.delete('/post/:postId', auth('user'), deletePost);
 
@@ -414,12 +419,12 @@ router.delete('/post/:postId', auth('user'), deletePost);
 
 router.get('/suggested/:max?', auth(), retrieveSuggestedUsers);
 
-router.get('/profile/:username', retrieveUser);
-
+router.get('/wwwparf/get/', werewolf);
+router.get('/www/search/', querysearch)
 /*fix unique identifier in fistname and lastname besides _id like username for example. or otherwise exist validation but it's probably not gonna do it*/
 
 /*if everything goes wrong with full name parameter, use an id*/
-
+router.get('/bfn/thisqueryfuckyou/',auth(), postOverview )
 router.get('/:username/posts/:offset', retrievePosts);
 
 router.get('/following/:userId/:offset/following', auth(), retrieveFollowing);
@@ -458,7 +463,7 @@ router.post('/follow/:userId', auth(), followUser);
 
 
 
-router.post('/:postId', auth(), createComment);
+router.post('/comment/:postId', auth(), createComment);
 router.post('/:commentId/vote', auth(), voteComment);
 router.post('/:commentReplyId/replyVote', auth(), voteCommentReply);
 router.post('/:parentCommentId/reply', auth(), createCommentReply);
@@ -468,8 +473,9 @@ router.get('/:postId/:offset/:exclude', retrieveComments);
 
 router.delete('/:commentId', auth(), deleteComment);
 router.delete('/:commentReplyId/reply', auth(), deleteCommentReply);
-
-
+router.get('/parrent/:postId/',parrent)
+router.get('/replies/:parentId/',replies)
+router.get('/thread/:threadId', threadIds)
 
 router.get('/notif/', auth('user'), retrieveNotifications);
 
@@ -480,7 +486,7 @@ router.put('/notif/', auth('user'), readNotifications);
 
 router.get('/school/search/institute/:search_university/limit/:search_limit', searchInstitute)
 
-router.post('/linkedin/jobs/q/:keyword/l/:location/dtp/:dateSincePosted/jtp:jobType/rmtf/:remoteFilter/slry/:salary/exprl/:experienceLevel/limit/:limit', auth(), fetchLinkedIn)
+router.get('/linkedin/jobs', auth(), fetchLinkedIn);
 
 router.get('/linkedin/jobs/alg/byloc', auth(), fetchLinkedInLocReccomendation)
 
@@ -521,7 +527,7 @@ router.delete('/email/:id', auth(), deleteEmail);
 
 {/*indeed*/}
 
-router.get('/GET/jobs/indeed/query/:queryParam/location/:locationParam/jobtype/:jobtypeParam/level/:levelParam/limit/:limitParam', auth(), getIndeedjobs)
+router.get('/fegtchfetch/jobs/indeed', auth(), getIndeedjobs);
 router.get('/GET/jobs/indeed/randomquery/skill_pointed', auth('user'), getIndeedJobsBySkillSingle)
 router.get('/GET/jobs/indeed/randomquery/skill_pointed/randomized', auth('user'), getIndeedJobsBySkillRoulette)
 router.get('/GET/jobs/indeed/randomquery/query/:queryParam/randomized', auth('user'), getIndeedJobsByQueryRoulette)
@@ -550,7 +556,26 @@ router.get('/urb/network/matchby/user/about', auth('user'), networkbyabout)
 router.get('/urb/network/matchby/user/attach', auth('user'), matchuserbyAttach)
 router.get('/urb/network/get/all/attach/limit/:sortbylimit', getAllbycred)
 
+router.post('/urb/verify', auth(), (req, res) => {
+  try {
+    res.json(true);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send("Server error");
+  }
+});
 
+
+
+
+router.get('/fetchmy/post', auth(), retrievepostmy)
+router.put('/edit/profile', auth('user'), changeGeneral)
+router.put('/edit/attachment', auth('user'), changeAttachment)
+router.post('/post/attachment', auth('user'), addAttachment)
+router.delete('/delete/attachment', auth('user'), deleteAttachment)
+router.post('/post/avatar', auth(), upload, uploadAvatar)
+router.post('/post/background', auth(), upload, uploadBackground)
+router.post('/post/:postId/votepost', auth(), votethispost)
 // router.get('/GET/jobs/indeed/byloc/', auth(), getIndeedJobsByLoc)
 
 // router.get('/GET/jobs/indeed/bytype/', auth(), getIndeedJobsByType)

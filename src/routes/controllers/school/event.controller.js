@@ -8,7 +8,7 @@ const Followers = require('../../../models/Followers.model');
 const Notification = require('../../../models/Notification.model');
 const fs = require('fs');
 const ObjectId = require('mongoose').Types.ObjectId;
-
+const UserSkill = require('../../../models/userSkill.model')
 const {
   formatCloudinaryUrl,
   populateEventsPipeline,

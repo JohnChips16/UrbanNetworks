@@ -44,6 +44,15 @@ accProjSchema.pre('save', function (next) {
   next();
 });
 
+
+for (const path in accProjSchema.paths) {
+  const field = accProjSchema.paths[path];
+  if (field.instance === 'String') {
+    accProjSchema.index({ [path]: 'text' });
+  }
+}
+
+
 const AccProj = mongoose.model('AccProj', accProjSchema);
 
 module.exports = AccProj;

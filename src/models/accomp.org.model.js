@@ -17,11 +17,11 @@ const accompOrgSchema = new mongoose.Schema({
     default: false,
   },
   dateFrom: {
-    type: Date,
+    type: String,
     required: true,
   },
   dateThen: {
-    type: Date,
+    type: String,
   },
   ongoing: {
     type: Boolean,
@@ -44,6 +44,15 @@ accompOrgSchema.pre('save', function (next) {
   }
   next();
 });
+
+// Define text index on orgName field
+for (const path in accompOrgSchema.paths) {
+  const field = accompOrgSchema.paths[path];
+  if (field.instance === 'String') {
+    accompOrgSchema.index({ [path]: 'text' });
+  }
+}
+
 
 const AccompOrg = mongoose.model('AccompOrg', accompOrgSchema);
 

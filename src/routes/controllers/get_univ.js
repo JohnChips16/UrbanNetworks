@@ -92,39 +92,37 @@ module.exports.searchInstitute = async (req, res) => {
 module.exports.fetchLinkedIn = async (req, res) => {
   const user = req.user;
   try {
-    let {
-      keyword,
-      location,
-      dateSincePosted,
-      jobType,
-      remoteFilter,
-      salary,
-      experienceLevel,
+    const {
+      q: keyword,
+      l: location,
+      dtp: dateSincePosted,
+      jtp: jobType,
+      rmtf: remoteFilter,
+      slry: salary,
+      exprl: experienceLevel,
       limit
-    } = req.params;
-    location = location || user.location;
-    limit = limit || 25;
-    jobType = jobType || "";
-    remoteFilter = remoteFilter || "";
-    dateSincePosted = dateSincePosted || "";
-    salary = salary || "";
-    experienceLevel = experienceLevel || "";
-    if (!keyword) {
-      return res.status(400).send({
-        _status: 'bad',
-        _error: 'keyword cannot be undefined'
-      });
-    }
+    } = req.query;
+
+    const parsedLimit = limit ? parseInt(limit, 10) : 25;
+
+    // if (!keyword) {
+    //   return res.status(400).send({
+    //     _status: 'bad',
+    //     _error: 'keyword cannot be undefined'
+    //   });
+    // }
+
     const queryOptions = {
-      keyword: keyword,
-      location: location,
-      dateSincePosted: dateSincePosted,
-      jobType: jobType,
-      remoteFilter: remoteFilter,
-      salary: salary,
-      experienceLevel: experienceLevel,
-      limit: limit
+      keyword: keyword || "",
+      location: location || user.location || "",
+      dateSincePosted: dateSincePosted || "",
+      jobType: jobType || "",
+      remoteFilter: remoteFilter || "",
+      salary: salary || "",
+      experienceLevel: experienceLevel || "",
+      limit: parsedLimit
     };
+
     const response = await linkedIn.query(queryOptions);
     res.status(200).send(response);
   } catch (error) {

@@ -25,6 +25,15 @@ const accAwrdSchema = new mongoose.Schema({
   },
 });
 
+// Define text index on title, associatedWith, issuer, and desc fields
+for (const path in accAwrdSchema.paths) {
+  const field = accAwrdSchema.paths[path];
+  if (field.instance === 'String') {
+    accAwrdSchema.index({ [path]: 'text' });
+  }
+}
+
+
 const AccAwrd = mongoose.model('AccAwrd', accAwrdSchema);
 
 module.exports = AccAwrd;

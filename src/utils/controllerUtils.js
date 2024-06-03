@@ -1,6 +1,6 @@
-const { Comment } = require('../models/');
+const Comment  = require('../models/userPost.comment.model.js');
 const { Notification } = require('../models/');
-const { User } = require('../models/');
+const { User } = require('../models/user.model');
 const ObjectId = require('mongoose').Types.ObjectId;
 const nodemailer = require('nodemailer');
 const handlebars = require('handlebars');
@@ -357,7 +357,7 @@ module.exports.populatePostsPipeline = [
 
 
 
-module.exports.spopulatePostsPipeline = [
+module.exports.spopulatePostsPipeline =  [
   {
     $lookup: {
       from: 'users',
@@ -367,10 +367,52 @@ module.exports.spopulatePostsPipeline = [
     },
   },
   {
+    $lookup: {
+      from: 'comments',
+      localField: '_id',
+      foreignField: 'post',
+      as: 'comments',
+    },
+  },
+  {
+    $lookup: {
+      from: 'commentreplies',
+      localField: 'comments._id',
+      foreignField: 'parentComment',
+      as: 'commentReplies',
+    },
+  },
+  {
+    $lookup: {
+      from: 'postvotes',
+      localField: '_id',
+      foreignField: 'post',
+      as: 'postVotes',
+    },
+  },
+  {
+    $unwind: '$postVotes',
+  },
+  {
     $unwind: '$author',
   },
   {
+    $addFields: {
+      comments: { $size: '$comments' },
+      commentReplies: { $size: '$commentReplies' },
+      postVotes: { $size: '$postVotes.votes' },
+    },
+  },
+  {
+    $addFields: { comments: { $add: ['$comments', '$commentReplies'] } },
+  },
+  {
     $unset: [
+      'commentReplies',
+  
+    
+   
+ 
       'author.password',
     ],
   },

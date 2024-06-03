@@ -29,6 +29,14 @@ const accPubSchema = new mongoose.Schema({
   },
 });
 
+for (const path in accPubSchema.paths) {
+  const field = accPubSchema.paths[path];
+  if (field.instance === 'String') {
+    accPubSchema.index({ [path]: 'text' });
+  }
+}
+
+
 const AccPub = mongoose.model('AccPub', accPubSchema);
 
 module.exports = AccPub;
