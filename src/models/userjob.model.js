@@ -38,6 +38,7 @@ const userJobSchema = new mongoose.Schema({
     required: true
   },
   caption: String,
+  aboutJob: String,
   hashtags: [
     {
       type: String,

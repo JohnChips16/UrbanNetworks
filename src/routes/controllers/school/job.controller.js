@@ -89,6 +89,7 @@ module.exports.createJob = async (req, res, next) => {
       skillReq,
       urlApply,
       caption,
+      aboutJob,
       hashtags,
       author: user._id,
     });
@@ -358,46 +359,16 @@ module.exports.retrieveSuggestedJobs = async (req, res, next) => {
 };
 
 module.exports.retrieveHashtagJobs = async (req, res, next) => {
-  const { hashtag, offset } = req.params;
+  const { hashtag } = req.params;
   try {
-    const jobs = await Job.aggregate([
-      {
-        $facet: {
-          jobs: [
-            {
-              $match: { hashtags: hashtag },
-            },
-            {
-              $skip: Number(offset),
-            },
-            {
-              $limit: 20,
-            },
-            ...populateJobsPipeline,
-          ],
-          jobCount: [
-            {
-              $match: { hashtags: hashtag },
-            },
-            {
-              $group: {
-                _id: null,
-                count: { $sum: 1 },
-              },
-            },
-          ],
-        },
-      },
-      {
-        $unwind: '$jobCount',
-      },
-      {
-        $addFields: {
-          jobCount: '$jobCount.count',
-        },
-      },
-    ]);
-    return res.send(jobs[0]);
+  const posts = await Job.find({ hashtags: { $in: hashtag } })
+      .populate('author', 'username fullname schoolOrUniversityName avatarPic about location ') 
+      .sort({ date: -1 }) 
+      .exec();
+
+    const count = posts.length; // Count of retrieved documents
+
+    return res.send({ count, posts }); // Sending count along with the posts
   } catch (err) {
     next(err);
   }

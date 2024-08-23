@@ -13,8 +13,8 @@ const userNewsSchema = new Schema({
     type: String,
   },
   datePosted: {
-    type: String,
-    required: true
+    type: Date,
+    default: Date.now,
   },
   caption: String,
   hashtags: [

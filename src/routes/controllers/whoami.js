@@ -14,6 +14,8 @@ const Event = require('../../models/userevent.model')
 const News = require('../../models/usernews.model')
 const User = require('../../models/user.model')
 const Comment = require('../../models/userPost.comment.model')
+const Followers = require('../../models/Followers.model')
+const Following = require('../../models/Following.model')
 const mongoose = require('mongoose')
 const cloudinary = require('cloudinary').v2;
 const fs = require('fs');
@@ -1006,3 +1008,65 @@ module.exports.postOverview = async (req, res) => {
     res.status(500).send({ error: 'Internal Server Error' });
   }
 }
+module.exports.getFollowers = async (req, res) => {
+  const { targetId } = req.params;
+  
+  try {
+    // Find the Followers document by targetId
+    const followersData = await Followers.findOne({ user: targetId }).populate('followers.user', 'username avatarPic fullname schoolOrUniversityName');  // Populate followers' user details
+
+    if (!followersData) {
+      return res.status(404).json({ message: 'Followers not found' });
+    }
+
+    // Extract the followers list
+    const followersList = followersData.followers.map(follower => {
+  const user = follower.user;
+  return {
+    userId: user._id,
+    username: user.username,
+    avatarPic: user.avatarPic,
+    name: user.fullname || user.schoolOrUniversityName,  // Use fullname or schoolOrUniversityName
+  };
+});
+
+    // Get the total number of followers
+    const totalFollowers = followersList.length;
+
+    res.status(200).json({ followers: followersList, totalFollowers });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+module.exports.getFollowing = async (req, res) => {
+  const { targetId } = req.params;
+  
+  try {
+    // Find the Followers document by targetId
+    const followersData = await Following.findOne({ user: targetId }).populate('following.user', 'username avatarPic fullname schoolOrUniversityName');  // Populate followers' user details
+
+    if (!followersData) {
+      return res.status(404).json({ message: 'Followers not found' });
+    }
+
+    // Extract the followers list
+    const followersList = followersData.following.map(follower => {
+  const user = follower.user;
+  return {
+    userId: user._id,
+    username: user.username,
+    avatarPic: user.avatarPic,
+    name: user.fullname || user.schoolOrUniversityName,  // Use fullname or schoolOrUniversityName
+  };
+});
+
+    // Get the total number of followers
+    const totalFollowers = followersList.length;
+
+    res.status(200).json({ following: followersList, totalFollowers });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: 'Server error' });
+  }
+};

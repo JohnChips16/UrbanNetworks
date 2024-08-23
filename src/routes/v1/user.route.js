@@ -24,7 +24,7 @@ const {networkAlumni,
   applicantByEvent,
   applicantByJob
 } = require('../services/networking/school_network')
-const { whoami, retrievepostmy, changeGeneral, changeAttachment, addAttachment, deleteAttachment, uploadAvatar, uploadBackground, threadIds, wwvtag, querysearch, werewolf, postOverview} = require('../controllers/whoami')
+const { whoami, retrievepostmy, changeGeneral, changeAttachment, addAttachment, deleteAttachment, uploadAvatar, uploadBackground, threadIds, wwvtag, querysearch, werewolf, postOverview, getFollowers, getFollowing} = require('../controllers/whoami')
 const { networkbyskills, networkbyabout,
 matchuserbyAttach,
 getAllbycred
@@ -173,7 +173,7 @@ router.post('/school/news', postLimiter, auth('school'), upload, sscreatePost);
 
 router.get('/school/news/:postId', ssretrievePost);
 router.get('/school/news/feed/:offset', auth(), ssretrievePostFeed);
-router.get('/school/news/hashtag/:hashtag/:offset', auth(), ssretrieveHashtagPosts);
+router.get('/school/news/hashtag/:hashtag/', ssretrieveHashtagPosts);
 router.delete('/school/news/:postId', auth('school'), ssdeletePost);
 
 router.get('/school/news/fetch/all', ssretrieveAllPosts)
@@ -188,7 +188,7 @@ router.get('/school/news/q/matchby/loc', auth(), ssretrievePostLoc)
 router.post('/school/job', postLimiter, auth('school'), upload, createJob);
 router.get('/school/job/:jobId', retrievejob);
 router.get('/school/job/feed/:offset', auth(), retrieveJobFeed);
-router.get('/school/job/hashtag/:hashtag/:offset', auth(), retrieveHashtagJobs);
+router.get('/school/job/hashtag/:hashtag/', retrieveHashtagJobs);
 router.delete('/school/job/:jobId', auth('school'), deleteJob);
 
 {/*retrieve algol*/}
@@ -509,10 +509,12 @@ const {
   removeFromTrash,
   toggleEmailProperty,
   deleteEmail,
+  GetEmailById
 } = require('../controllers/email.controller.js');
 
 
 router.get('/GET/email/', auth(), getAllEmails);
+router.get('/em/:id', auth(), GetEmailById);
 router.post('/email/send', auth(), [...emailValidations], sendEmail);
 router.post('/email/draft', auth(), saveDraft);
 router.put('/email/draft/:id', auth(), updateDraft);
@@ -576,6 +578,14 @@ router.delete('/delete/attachment', auth('user'), deleteAttachment)
 router.post('/post/avatar', auth(), upload, uploadAvatar)
 router.post('/post/background', auth(), upload, uploadBackground)
 router.post('/post/:postId/votepost', auth(), votethispost)
+
+
+
+router.get('/foreign/get/followers/:targetId', getFollowers)
+router.get('/foreign/get/following/:targetId', getFollowing)
+
+
+
 // router.get('/GET/jobs/indeed/byloc/', auth(), getIndeedJobsByLoc)
 
 // router.get('/GET/jobs/indeed/bytype/', auth(), getIndeedJobsByType)

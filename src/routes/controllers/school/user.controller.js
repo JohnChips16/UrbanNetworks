@@ -650,22 +650,19 @@ module.exports.sfollowUser = async (req, res, next) => {
  * @param {boolean} followers Whether to query who is following the user or who the user follows default is the latter
  * @returns {array} Array of users
  */
-const retrieveRelatedUsers = async (user, userId, offset, followers) => {
+ 
+ const retrieveRelatedUsers = async (user, userId, offset, followers) => {
   const pipeline = [
     {
-      $match: { user: ObjectId(userId) },
+      $match: { _id: ObjectId(userId) },
     },
     {
       $lookup: {
         from: 'users',
-        let: followers
-          ? { userId: '$followers.user' }
-          : { userId: '$following.user' },
+        let: { userId: '$followers.user' },
         pipeline: [
           {
             $match: {
-              // Using the $in operator instead of the $eq
-              // operator because we can't coerce the types
               $expr: { $in: ['$_id', '$$userId'] },
             },
           },
@@ -693,7 +690,13 @@ const retrieveRelatedUsers = async (user, userId, offset, followers) => {
         'users.schoolOrUniversityName': true,
         'users.username': true,
         'users.avatarPic': true,
-        userFollowers: true,
+        userFollowers: {
+          $filter: {
+            input: '$userFollowers',
+            as: 'follower',
+            cond: { $eq: ['$$follower.user', '$users._id'] }
+          }
+        }
       },
     },
   ];
@@ -704,25 +707,27 @@ const retrieveRelatedUsers = async (user, userId, offset, followers) => {
 
   // Make a set to store the IDs of the followed users
   const followedUsers = new Set();
-  // Loop through every follower and add the id to the set if the user's id is in the array
-  aggregation[0].userFollowers.forEach((followingUser) => {
+
+  // Loop through every user and add the id to the set if the user's id is in the array
+  aggregation[0].users.forEach((followingUser) => {
     if (
-      !!followingUser.followers.find(
+      !!followingUser.userFollowers.find(
         (follower) => String(follower.user) === String(user._id)
       )
     ) {
-      followedUsers.add(String(followingUser.user));
+      followedUsers.add(String(followingUser._id));
     }
   });
-  // Add the isFollowing key to the following object with a value
-  // depending on the outcome of the loop above
+
+  // Add the isFollowing key to each user object
   aggregation[0].users.forEach((followingUser) => {
     followingUser.isFollowing = followedUsers.has(String(followingUser._id));
   });
 
   return aggregation[0].users;
 };
-
+ 
+ 
 module.exports.sretrieveFollowing = async (req, res, next) => {
   const { userId, offset = 0 } = req.params;
   const user = req.user;

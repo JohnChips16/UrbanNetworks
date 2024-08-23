@@ -18,7 +18,7 @@ const {
 /*optional req.file*/
 module.exports.sscreatePost = async (req, res, next) => {
   const user = req.user;
-  const { title, caption, datePosted, url,   } = req.body;
+  const { title, caption, url,   } = req.body;
   let post = undefined;
 
   const hashtags = [];
@@ -75,7 +75,7 @@ module.exports.sscreatePost = async (req, res, next) => {
       title,
       attachment: response ? response.secure_url : undefined,
       url,
-      datePosted,
+      
       caption,
       hashtags,
       author: user._id,
@@ -154,7 +154,7 @@ module.exports.ssretrievePost = async (req, res, next) => {
   const { postId } = req.params;
   try {
     // Retrieve the post and the post's votes
-    const post = await News.aggregate([
+     const post = await News.aggregate([
       { $match: { _id: ObjectId(postId) } },
       {
         $lookup: {
@@ -169,16 +169,16 @@ module.exports.ssretrievePost = async (req, res, next) => {
         $unset: [
           'author.password',
           'author.email',
-        
+          'author.mailbox',
         ],
       },
     ]);
     if (post.length === 0) {
       return res
         .status(404)
-        .send({ error: 'Could not find a post with that id.' });
+        .send({ error: `Could not find a post with that id. ${post} ${postId}` });
     }
-
+    console.log(post + postId)
     return res.send({ ...post[0] });
   } catch (err) {
     next(err);
@@ -263,48 +263,17 @@ module.exports.ssretrieveSuggestedPosts = async (req, res, next) => {
 };
 
 module.exports.ssretrieveHashtagPosts = async (req, res, next) => {
-  const { hashtag, offset } = req.params;
+  const { hashtag } = req.params;
 
   try {
-    const posts = await News.aggregate([
-      {
-        $facet: {
-          posts: [
-            {
-              $match: { hashtags: hashtag },
-            },
-            {
-              $skip: Number(offset),
-            },
-            {
-              $limit: 20,
-            },
-            ...spopulatePostsPipeline,
-          ],
-          postCount: [
-            {
-              $match: { hashtags: hashtag },
-            },
-            {
-              $group: {
-                _id: null,
-                count: { $sum: 1 },
-              },
-            },
-          ],
-        },
-      },
-      {
-        $unwind: '$postCount',
-      },
-      {
-        $addFields: {
-          postCount: '$postCount.count',
-        },
-      },
-    ]);
+   const posts = await News.find({ hashtags: { $in: hashtag } })
+      .populate('author', 'username fullname schoolOrUniversityName avatarPic about location ') 
+      .sort({ date: -1 }) 
+      .exec();
 
-    return res.send(posts[0]);
+    const count = posts.length; // Count of retrieved documents
+
+    return res.send({ count, posts }); // Sending count along with the posts
   } catch (err) {
     next(err);
   }

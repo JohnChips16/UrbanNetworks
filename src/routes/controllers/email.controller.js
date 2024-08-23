@@ -4,6 +4,8 @@
 
 
 const Email = require('../../models/email.model.js');
+const mongoose = require('mongoose');
+
 // const Account = require('../models/Account.js');
 const User = require('../../models/user.model.js');
 const { validationResult } = require('express-validator');
@@ -12,18 +14,24 @@ const { validationResult } = require('express-validator');
 // Get all emails for the authenticated user
 module.exports.getAllEmails = async (request, response, next) => {
   try {
+    // Find the user's mailbox including all folders: inbox, outbox, drafts, trash
     const { mailbox } = await User.findOne({ _id: request.user._id })
       .select('mailbox')
-      .populate('mailbox.inbox mailbox.outbox mailbox.drafts mailbox.trash');
+      .populate({
+        path: 'mailbox',
+        populate: { path: 'inbox outbox drafts trash' },
+        options: { sort: { date: -1 } }  // Sort by date in descending order
+      });
 
-    console.log('Emails found', mailbox);
+    // Log and respond with found emails
+    console.log('Emails found:', mailbox);
     response.status(200).json({ message: 'Emails found', mailbox });
   } catch (error) {
-    console.error(error);
+    // Handle errors
+    console.error('Error retrieving emails:', error);
     response.status(500).json({ error: 'Internal Server Error' });
   }
 };
-
 // Send an email
 module.exports.sendEmail = async (request, response, next) => {
   try {
@@ -52,7 +60,7 @@ module.exports.sendEmail = async (request, response, next) => {
       from: request.body.to,
       to: request.user.email, // Use the authenticated user's email as 'to'
       subject: 'Re: ' + request.body.subject,
-      message: 'paragraph()', // Consider providing an actual reply message
+      message: request.body.message, // Consider providing an actual reply message
     });
 
     // Save random reply email
@@ -312,3 +320,21 @@ module.exports.deleteEmail = async(request, response, next) => {
     response.status(500);
   }
 }
+module.exports.GetEmailById = async (req, res) => {
+  const { id } = req.params;
+  try {
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).send({ message: 'Invalid ID format' });
+    }
+
+    const email = await Email.findById(id);
+    if (!email) {
+      return res.status(404).send({ message: 'Email not found' });
+    }
+    console.log(id)
+    res.status(200).send(email);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send(err);
+  }
+};
